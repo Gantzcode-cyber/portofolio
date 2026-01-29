@@ -4,3 +4,5 @@ Pillow
 matplotlib
 numpy
 fpdf
+pandas
+streamlit-drawable-canvas
