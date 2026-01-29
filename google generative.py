@@ -29,7 +29,7 @@ def load_lottieurl(url):
 
 lottie_robot = load_lottieurl("https://lottie.host/5a8059f1-3226-444a-93f4-0b7305986877/P1sF2Xn3vR.json")
 
-# --- 3. CSS "CYBER DARK" (ANTI-BOCOR PUTIH) ---
+# --- 3. CSS CYBERPUNK (SUPPORTS CLICKABLE CARDS) ---
 st.markdown("""
 <style>
     /* RESET GLOBAL */
@@ -39,25 +39,21 @@ st.markdown("""
         font-family: 'Courier New', monospace;
     }
 
-    /* --- PERBAIKAN SIDEBAR (AGAR TIDAK ADA KOTAK PUTIH) --- */
+    /* --- SIDEBAR & MENU --- */
     [data-testid="stSidebar"] {
         background-color: #000000 !important;
         border-right: 1px solid #00E5FF;
     }
-    
-    /* Memaksa container menu opsi menjadi hitam */
     div[data-testid="stSidebarNav"] {
         background-color: #000000 !important;
     }
 
-    /* --- PERBAIKAN BAR BAWAH (INPUT CHAT) --- */
-    /* Target container paling bawah */
+    /* --- BAR BAWAH (INPUT) --- */
     div[data-testid="stBottom"] {
-        background-color: #000000 !important; /* Paksa Hitam */
+        background-color: #000000 !important;
         border-top: 1px solid #00E5FF;
         padding-bottom: 20px;
     }
-    /* Target area input text */
     .stChatInput textarea {
         background-color: #0a0a0a !important;
         color: #00E5FF !important;
@@ -68,15 +64,16 @@ st.markdown("""
         box-shadow: 0 0 10px #00E5FF;
     }
 
-    /* --- TOMBOL --- */
+    /* --- TOMBOL UMUM --- */
     .stButton>button {
         width: 100%;
         border-radius: 0px;
-        background-color: #000;
+        background-color: #050505;
         color: #00E5FF;
         border: 1px solid #00E5FF;
         font-weight: bold;
         transition: 0.3s;
+        text-transform: uppercase;
     }
     .stButton>button:hover {
         background-color: #00E5FF;
@@ -84,31 +81,17 @@ st.markdown("""
         box-shadow: 0 0 15px #00E5FF;
     }
 
-    /* --- KARTU DASHBOARD --- */
-    .cyber-card {
-        background: #050505;
-        border: 1px solid #333;
-        padding: 20px;
-        text-align: center;
-        transition: 0.3s;
-        border-left: 3px solid #333;
-    }
-    .cyber-card:hover {
-        border-color: #00E5FF;
-        border-left: 10px solid #00E5FF;
-        transform: translateY(-5px);
-        box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
-    }
-
-    /* --- FIX CANVAS AGAR FULL (TIDAK ADA BACKGROUND PUTIH) --- */
-    iframe[title="streamlit_drawable_canvas.st_canvas"] {
-        background-color: #000000;
+    /* --- TOMBOL DASHBOARD KHUSUS (BESAR) --- */
+    /* Kita akan mentarget tombol yang memiliki emoji khusus ini di dalamnya nanti */
+    /* Sayangnya CSS tidak bisa baca text, jadi kita buat semua tombol di main area agak tinggi */
+    div[data-testid="stVerticalBlock"] > div > div > div > div > .stButton > button {
+        min-height: 60px; /* Tinggi standar */
     }
 
 </style>
 """, unsafe_allow_html=True)
 
-# Set Grafik jadi Gelap
+# Set Grafik Gelap
 plt.style.use('dark_background')
 
 # --- 4. API CONFIG ---
@@ -120,10 +103,10 @@ try:
         st.stop()
 except: st.stop()
 
-model = genai.GenerativeModel('moduls/gemini-2.5-flash')
+model = genai.GenerativeModel('gemini-1.5-flash')
 if "messages" not in st.session_state: st.session_state.messages = []
 
-# --- 5. SIDEBAR ---
+# --- 5. SIDEBAR NAVIGASI ---
 with st.sidebar:
     st.markdown("### 🧬 CONTROL PANEL")
     
@@ -133,14 +116,15 @@ with st.sidebar:
     
     st.divider()
     
-    # PERBAIKAN MENU: Background Container diset ke HITAM (#000000)
+    # ⚠️ PENTING: Tambahkan key='main_nav' agar bisa dikontrol dari tombol luar
     selected = option_menu(
         menu_title=None,
         options=["Beranda", "Papan Tulis", "Statistik", "Grafik", "Ujian PDF"],
         icons=["house", "pencil", "bar-chart", "activity", "file-pdf"],
         default_index=0,
+        key="main_nav", # Kunci agar tombol dashboard bisa mengubah menu ini
         styles={
-            "container": {"padding": "0!important", "background-color": "#000000"}, # INI KUNCINYA
+            "container": {"padding": "0!important", "background-color": "#000000"},
             "icon": {"color": "#00E5FF", "font-size": "18px"}, 
             "nav-link": {"font-size": "16px", "text-align": "left", "margin": "5px", "color": "#fff", "background-color": "#000000"},
             "nav-link-selected": {"background-color": "#00E5FF", "color": "black", "font-weight": "bold"},
@@ -152,19 +136,18 @@ with st.sidebar:
 
 # --- 6. LOGIKA FITUR ---
 
-# A. PAPAN TULIS (FULL & MENYATU)
+# A. PAPAN TULIS
 if selected == "Papan Tulis":
     st.markdown("<h2 style='color:#00E5FF'>✏️ CANVAS DIGITAL</h2>", unsafe_allow_html=True)
-    st.caption("Coret rumus matematika di area hitam di bawah ini.")
+    st.caption("Gunakan area ini untuk menulis soal atau upload gambar.")
     
-    # Canvas Lebar & Hitam
     canvas_result = st_canvas(
         fill_color="rgba(0, 229, 255, 0.3)",
         stroke_width=3,
         stroke_color="#00E5FF",
-        background_color="#000000", # Pastikan Hitam
+        background_color="#000000",
         height=500,
-        width=1200, # Lebar maksimal agar pas di laptop
+        width=1200,
         drawing_mode="freedraw",
         key="canvas",
     )
@@ -173,7 +156,7 @@ if selected == "Papan Tulis":
         if canvas_result.image_data is not None:
             img = Image.fromarray(canvas_result.image_data.astype("uint8"))
             st.session_state.messages.append({"role": "user", "content": "[Mengirim Canvas]"})
-            with st.spinner("MEMBACA CORETAN..."):
+            with st.spinner("ANALISIS VISION..."):
                 resp = model.generate_content(["Jelaskan matematika ini:", img])
                 st.session_state.messages.append({"role": "assistant", "content": resp.text})
                 st.rerun()
@@ -185,7 +168,7 @@ elif selected == "Statistik":
     if file:
         df = pd.read_csv(file)
         st.dataframe(df.head(), use_container_width=True)
-        if st.button("ANALISIS"):
+        if st.button("ANALISIS DATA"):
             with st.spinner("PROCESSING..."):
                 resp = model.generate_content(f"Analisis data:\n{df.describe().to_string()}")
                 st.session_state.messages.append({"role": "assistant", "content": resp.text})
@@ -216,11 +199,11 @@ elif selected == "Grafik":
             st.pyplot(fig)
         except: st.error("ERROR")
 
-# D. PDF
+# D. UJIAN PDF
 elif selected == "Ujian PDF":
     st.markdown("<h2 style='color:#00E5FF'>📝 EXAM GENERATOR</h2>", unsafe_allow_html=True)
     topik = st.text_input("Topik:", "Turunan")
-    if st.button("GENERATE"):
+    if st.button("GENERATE PDF"):
         def create_pdf(text):
             pdf = FPDF(); pdf.add_page(); pdf.set_font("Arial", size=12)
             pdf.multi_cell(0, 7, text.encode('latin-1', 'replace').decode('latin-1'))
@@ -229,24 +212,54 @@ elif selected == "Ujian PDF":
             resp = model.generate_content(f"Buat 3 soal {topik}.")
             st.download_button("DOWNLOAD", create_pdf(resp.text), "soal.pdf")
 
-# --- 7. DASHBOARD ---
+# --- 7. DASHBOARD (DENGAN TOMBOL KLIK) ---
 if selected == "Beranda":
-    st.markdown('<h1 style="color:#fff; font-size:3em;">AI MATH ULTIMATE</h1>', unsafe_allow_html=True)
-    st.write("SYSTEM READY. WAITING FOR INPUT.")
+    st.markdown('<h1 style="color:#fff; font-size:3em; margin-bottom: 20px;">AI MATH ULTIMATE</h1>', unsafe_allow_html=True)
+    st.write("SISTEM MATEMATIKA CERDAS. SILAKAN PILIH MODUL.")
     
-    if not st.session_state.messages:
-        st.divider()
-        c1, c2, c3 = st.columns(3)
-        with c1: st.markdown('<div class="cyber-card"><h1>📸</h1><h3>VISION</h3></div>', unsafe_allow_html=True)
-        with c2: st.markdown('<div class="cyber-card"><h1>📈</h1><h3>GRAPH</h3></div>', unsafe_allow_html=True)
-        with c3: st.markdown('<div class="cyber-card"><h1>💾</h1><h3>DATA</h3></div>', unsafe_allow_html=True)
+    st.divider()
 
-# --- 8. CHAT ---
+    # KITA GANTI HTML 'DIV' DENGAN TOMBOL ASLI STREAMLIT AGAR BISA DIKLIK
+    # Kita gunakan CSS Custom agar tombol ini terlihat besar seperti kartu
+    
+    # CSS Khusus untuk membesarkan tombol dashboard
+    st.markdown("""
+    <style>
+    div[data-testid="column"] button {
+        height: 150px; /* Tinggi Tombol */
+        width: 100%;
+        font-size: 24px;
+        white-space: pre-wrap; /* Agar teks bisa enter */
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        # Tombol Vision
+        if st.button("📸\nVISION SCAN\n(Canvas & Foto)", use_container_width=True):
+            st.session_state["main_nav"] = "Papan Tulis" # Pindah ke Papan Tulis
+            st.rerun()
+            
+    with col2:
+        # Tombol Grafik
+        if st.button("📈\nAUTO GRAPH\n(Plot Rumus)", use_container_width=True):
+            st.session_state["main_nav"] = "Grafik" # Pindah ke Grafik
+            st.rerun()
+            
+    with col3:
+        # Tombol Data
+        if st.button("💾\nDATA ENGINE\n(Analisis CSV)", use_container_width=True):
+            st.session_state["main_nav"] = "Statistik" # Pindah ke Statistik
+            st.rerun()
+
+# --- 8. CHAT INTERFACE ---
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# --- 9. INPUT BAWAH (FIXED BLACK) ---
+# --- 9. INPUT BAWAH ---
 if prompt := st.chat_input("COMMAND INPUT..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.rerun()
