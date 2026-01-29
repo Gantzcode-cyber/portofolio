@@ -25,7 +25,7 @@ except Exception as e:
     st.error(f"Terjadi kesalahan konfigurasi: {e}")
     st.stop()
 
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('models/gemini-2.5-flash')
 
 # --- 3. INISIALISASI SESSION STATE ---
 if "messages" not in st.session_state:
