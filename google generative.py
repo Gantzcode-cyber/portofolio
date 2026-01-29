@@ -8,7 +8,7 @@ import pandas as pd
 from streamlit_drawable_canvas import st_canvas
 import requests
 from streamlit_lottie import st_lottie
-from streamlit_option_menu import option_menu # LIBRARY BARU NAVIGASI
+from streamlit_option_menu import option_menu
 import time
 
 # --- 1. KONFIGURASI HALAMAN ---
@@ -30,7 +30,7 @@ def load_lottieurl(url):
 lottie_robot = load_lottieurl("https://lottie.host/5a8059f1-3226-444a-93f4-0b7305986877/P1sF2Xn3vR.json")
 lottie_coding = load_lottieurl("https://assets5.lottiefiles.com/packages/lf20_fcfjwiyb.json")
 
-# --- 3. CSS MODERN (INPUT NEON & CARD) ---
+# --- 3. CSS MODERN (FIXED DARK MODE) ---
 def inject_custom_css(is_dark):
     # Palet Warna
     if is_dark:
@@ -38,18 +38,31 @@ def inject_custom_css(is_dark):
         text_color = "#fff"
         input_bg = "#1e232f"
         glow_color = "#00DFD8" # Cyan Neon
+        bottom_bg = "#0e1117"  # Warna container bawah (PENTING!)
     else:
         bg_main = "#f0f2f6"
         text_color = "#333"
         input_bg = "#ffffff"
         glow_color = "#007CF0" # Blue Neon
+        bottom_bg = "#f0f2f6"
 
     st.markdown(f"""
     <style>
+        /* Background Utama */
         .stApp {{ background-color: {bg_main}; color: {text_color}; }}
 
-        /* --- 1. CHAT INPUT YANG KEREN (NEON GLOW) --- */
-        /* Target area input chat Streamlit yang biasanya kaku */
+        /* --- FIX BAGIAN BAWAH (YANG SEBELUMNYA PUTIH/BUG) --- */
+        div[data-testid="stBottom"] {{
+            background-color: {bottom_bg} !important;
+            border-top: 1px solid {input_bg}; /* Garis tipis pemisah */
+        }}
+        
+        /* Pastikan container input transparan */
+        div[data-testid="stChatInput"] {{
+            background-color: transparent !important;
+        }}
+
+        /* --- STYLE INPUT BAR --- */
         .stChatInput textarea {{
             background-color: {input_bg} !important;
             color: {text_color} !important;
@@ -57,19 +70,12 @@ def inject_custom_css(is_dark):
             border-radius: 15px;
             transition: all 0.3s ease;
         }}
-        /* Efek Glow saat diklik/fokus */
         .stChatInput textarea:focus {{
             border-color: {glow_color} !important;
-            box-shadow: 0 0 15px {glow_color}50; /* 50 adalah transparansi */
-        }}
-        
-        /* Hilangkan background container input bawaan biar bersih */
-        div[data-testid="stChatInput"] {{
-            background: transparent;
-            padding-bottom: 20px;
+            box-shadow: 0 0 15px {glow_color}50;
         }}
 
-        /* --- 2. KARTU DASHBOARD --- */
+        /* --- KARTU DASHBOARD --- */
         .hover-card {{
             background-color: {input_bg};
             padding: 20px;
@@ -85,7 +91,7 @@ def inject_custom_css(is_dark):
             box-shadow: 0 0 20px {glow_color}40;
         }}
 
-        /* --- 3. JUDUL GRADIENT --- */
+        /* --- JUDUL GRADIENT --- */
         .animated-title {{
             background: linear-gradient(90deg, #FF0080, #7928CA, #00DFD8);
             background-size: 200% auto;
@@ -112,32 +118,29 @@ try:
         st.stop()
 except: st.stop()
 
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('moduls/gemini-2.5-flash')
 if "messages" not in st.session_state: st.session_state.messages = []
 
-# --- 5. SIDEBAR KEREN (OPTION MENU) ---
+# --- 5. SIDEBAR ---
 with st.sidebar:
-    # Toggle Dark Mode
     if 'dark_mode' not in st.session_state: st.session_state.dark_mode = True
     dark_mode = st.toggle("🌙 Tema Gelap", value=st.session_state.dark_mode)
     st.session_state.dark_mode = dark_mode
-    inject_custom_css(dark_mode)
+    inject_custom_css(dark_mode) # Panggil CSS Perbaikan
     
-    # Lottie Kecil
     if lottie_coding: st_lottie(lottie_coding, height=120)
     
-    # --- NAVIGASI MODERN (GANTI RADIO BUTTON) ---
     selected = option_menu(
-        menu_title="Navigasi Utama", # Judul Menu
-        options=["Beranda", "Papan Tulis", "Statistik", "Grafik", "Ujian PDF"], # Pilihan
-        icons=["house", "pencil-square", "bar-chart-line", "graph-up-arrow", "file-earmark-pdf"], # Icon Bootstrap
-        menu_icon="cast", # Icon Menu Utama
+        menu_title="Navigasi Utama",
+        options=["Beranda", "Papan Tulis", "Statistik", "Grafik", "Ujian PDF"],
+        icons=["house", "pencil-square", "bar-chart-line", "graph-up-arrow", "file-earmark-pdf"],
+        menu_icon="cast",
         default_index=0,
         styles={
             "container": {"padding": "5px", "background-color": "transparent"},
             "icon": {"color": "#00DFD8", "font-size": "20px"}, 
             "nav-link": {"font-size": "16px", "text-align": "left", "margin": "0px", "--hover-color": "#262730"},
-            "nav-link-selected": {"background-color": "#007CF0"}, # Warna tombol aktif
+            "nav-link-selected": {"background-color": "#007CF0"},
         }
     )
     
@@ -186,7 +189,6 @@ elif selected == "Grafik":
                 x = np.linspace(-10, 10, 100)
                 y = eval(rumus)
                 fig, ax = plt.subplots(figsize=(6, 4))
-                # Style Grafik
                 line_c = '#00DFD8' if dark_mode else '#007CF0'
                 if dark_mode:
                     fig.patch.set_facecolor('#0e1117')
@@ -231,13 +233,11 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# --- 9. INPUT NEON ---
-# Bagian ini akan otomatis terkena style CSS di atas
+# --- 9. INPUT NEON (SUDAH DIPERBAIKI) ---
 if prompt := st.chat_input("Ketik pertanyaan matematika..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.rerun()
 
-# Proses Response
 if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
     user_msg = st.session_state.messages[-1]["content"]
     with st.chat_message("user"): st.markdown(user_msg)
@@ -248,14 +248,11 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
             try:
                 sys = "Jawab dengan LaTeX. Jelaskan step-by-step."
                 response = model.generate_content(sys + user_msg)
-                
-                # Efek mengetik
                 full_text = ""
                 for chunk in response.text.split():
                     full_text += chunk + " "
                     placeholder.markdown(full_text + "▌")
                     time.sleep(0.05)
                 placeholder.markdown(full_text)
-                
                 st.session_state.messages.append({"role": "assistant", "content": full_text})
             except: st.error("Error koneksi")
