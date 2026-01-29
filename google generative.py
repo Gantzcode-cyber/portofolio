@@ -129,3 +129,12 @@ if prompt := st.chat_input("Ketik soal matematika..."):
             st.session_state.messages.append({"role": "assistant", "content": bot_reply})
         except Exception as e:
             st.error(f"Error koneksi: {e}")
+# --- TEMPEL INI DI PALING BAWAH KODE UNTUK CEK MODEL ---
+try:
+    st.write("Mengecek daftar model yang tersedia...")
+    for m in genai.list_models():
+        if 'generateContent' in m.supported_generation_methods:
+            print(m.name) # Ini akan muncul di log hitam (terminal)
+            st.write(f"- {m.name}") # Ini akan muncul di layar website
+except Exception as e:
+    st.error(f"Error listing models: {e}")
