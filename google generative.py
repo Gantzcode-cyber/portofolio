@@ -115,7 +115,7 @@ except Exception as e:
     st.error(f"Error Config: {e}")
     st.stop()
 
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('models/gemini-2.5-flash')
 
 # --- 6. SIDEBAR NAVIGASI ---
 with st.sidebar:
@@ -299,7 +299,7 @@ except Exception as e:
 if st.button("TES KONEKSI KE GOOGLE"):
     with st.spinner("Mencoba menghubungi server Google..."):
         try:
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            model = genai.GenerativeModel('models/gemini-2.5-flash')
             response = model.generate_content("Tes. Jawab 'Halo' jika terhubung.")
             
             st.success("✅ BERHASIL TERHUBUNG!")
