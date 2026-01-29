@@ -29,8 +29,7 @@ def load_lottieurl(url):
 
 lottie_robot = load_lottieurl("https://lottie.host/5a8059f1-3226-444a-93f4-0b7305986877/P1sF2Xn3vR.json")
 
-# --- 3. FIX ERROR SESSION STATE (PENTING!) ---
-# Ini mencegah error saat tombol diklik. Kita set default menu ke 'Beranda'
+# --- 3. FIX ERROR SESSION STATE ---
 if "main_nav" not in st.session_state:
     st.session_state["main_nav"] = "Beranda"
 
@@ -91,7 +90,7 @@ st.markdown("""
 
     /* --- TOMBOL DASHBOARD BESAR --- */
     div[data-testid="column"] button {
-        min-height: 150px; /* Tinggi Tombol */
+        min-height: 150px; 
         width: 100%;
         font-size: 20px;
         border: 2px solid #333;
@@ -100,23 +99,23 @@ st.markdown("""
         border-color: #00E5FF;
         transform: scale(1.02);
     }
-
 </style>
 """, unsafe_allow_html=True)
 
-# Set Grafik Gelap
 plt.style.use('dark_background')
 
-# --- 5. API CONFIG ---
+# --- 5. API CONFIG (DENGAN PENGAMAN) ---
 try:
     if "GEMINI_API_KEY" in st.secrets:
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
     else:
-        st.error("⚠️ API Key hilang!")
+        st.error("⚠️ API Key hilang! Cek Secrets.")
         st.stop()
-except: st.stop()
+except Exception as e:
+    st.error(f"Error Config: {e}")
+    st.stop()
 
-model = genai.GenerativeModel('moduls/gemini-2.5-flash')
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 # --- 6. SIDEBAR NAVIGASI ---
 with st.sidebar:
@@ -128,13 +127,12 @@ with st.sidebar:
     
     st.divider()
     
-    # Menu Navigasi (Terhubung dengan Session State)
     selected = option_menu(
         menu_title=None,
         options=["Beranda", "Papan Tulis", "Statistik", "Grafik", "Ujian PDF"],
         icons=["house", "pencil", "bar-chart", "activity", "file-pdf"],
         default_index=0,
-        key="main_nav", # Kunci ini sekarang aman karena sudah di-init di atas
+        key="main_nav",
         styles={
             "container": {"padding": "0!important", "background-color": "#000000"},
             "icon": {"color": "#00E5FF", "font-size": "18px"}, 
@@ -146,7 +144,7 @@ with st.sidebar:
     if lottie_robot:
         st_lottie(lottie_robot, height=150, key="anim_sidebar")
 
-# --- 7. LOGIKA FITUR ---
+# --- 7. LOGIKA FITUR (SEMUA PAKAI TRY-EXCEPT) ---
 
 # A. PAPAN TULIS
 if selected == "Papan Tulis":
@@ -168,9 +166,12 @@ if selected == "Papan Tulis":
             img = Image.fromarray(canvas_result.image_data.astype("uint8"))
             st.session_state.messages.append({"role": "user", "content": "[Mengirim Canvas]"})
             with st.spinner("ANALISIS VISION..."):
-                resp = model.generate_content(["Jelaskan matematika ini:", img])
-                st.session_state.messages.append({"role": "assistant", "content": resp.text})
-                st.rerun()
+                try: # PENGAMAN
+                    resp = model.generate_content(["Jelaskan matematika ini:", img])
+                    st.session_state.messages.append({"role": "assistant", "content": resp.text})
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Gagal terhubung ke AI: {e}")
 
 # B. STATISTIK
 elif selected == "Statistik":
@@ -181,9 +182,12 @@ elif selected == "Statistik":
         st.dataframe(df.head(), use_container_width=True)
         if st.button("ANALISIS DATA"):
             with st.spinner("PROCESSING..."):
-                resp = model.generate_content(f"Analisis data:\n{df.describe().to_string()}")
-                st.session_state.messages.append({"role": "assistant", "content": resp.text})
-                st.rerun()
+                try: # PENGAMAN
+                    resp = model.generate_content(f"Analisis data:\n{df.describe().to_string()}")
+                    st.session_state.messages.append({"role": "assistant", "content": resp.text})
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Gagal analisis: {e}")
 
 # C. GRAFIK
 elif selected == "Grafik":
@@ -208,20 +212,37 @@ elif selected == "Grafik":
             ax.plot(x, y, color='#00E5FF', linewidth=3)
             ax.grid(True, color='#333', linestyle='--')
             st.pyplot(fig)
-        except: st.error("ERROR")
+        except Exception as e: st.error(f"Rumus Error: {e}")
 
-# D. UJIAN PDF
+# D. UJIAN PDF (BAGIAN YANG TADI ERROR)
 elif selected == "Ujian PDF":
     st.markdown("<h2 style='color:#00E5FF'>📝 EXAM GENERATOR</h2>", unsafe_allow_html=True)
     topik = st.text_input("Topik:", "Turunan")
+    
     if st.button("GENERATE PDF"):
         def create_pdf(text):
             pdf = FPDF(); pdf.add_page(); pdf.set_font("Arial", size=12)
             pdf.multi_cell(0, 7, text.encode('latin-1', 'replace').decode('latin-1'))
             return pdf.output(dest='S').encode('latin-1')
+            
         with st.spinner("CREATING..."):
-            resp = model.generate_content(f"Buat 3 soal {topik}.")
-            st.download_button("DOWNLOAD", create_pdf(resp.text), "soal.pdf")
+            try: # --- PENGAMAN DI SINI ---
+                # Memanggil API dengan aman
+                resp = model.generate_content(f"Buat 3 soal matematika pilihan ganda tentang {topik} beserta kunci jawaban.")
+                
+                # Jika berhasil, buat tombol download
+                st.download_button(
+                    label="DOWNLOAD PDF", 
+                    data=create_pdf(resp.text), 
+                    file_name="soal_matematika.pdf",
+                    mime="application/pdf"
+                )
+                st.success("PDF Berhasil Dibuat! Silakan Download.")
+                
+            except Exception as e:
+                # Jika Error, Tampilkan Pesan Santai, JANGAN CRASH
+                st.warning("⚠️ Koneksi AI sedang sibuk. Mohon tunggu 10 detik dan coba lagi.")
+                st.error(f"Detail Error: {e}")
 
 # --- 8. DASHBOARD UTAMA ---
 if selected == "Beranda":
@@ -229,19 +250,15 @@ if selected == "Beranda":
     st.write("SISTEM MATEMATIKA CERDAS. SILAKAN PILIH MODUL.")
     st.divider()
 
-    # Tombol Dashboard Besar
     col1, col2, col3 = st.columns(3)
-    
     with col1:
         if st.button("📸\nVISION SCAN\n(Canvas & Foto)", use_container_width=True):
             st.session_state["main_nav"] = "Papan Tulis" 
             st.rerun()
-            
     with col2:
         if st.button("📈\nAUTO GRAPH\n(Plot Rumus)", use_container_width=True):
             st.session_state["main_nav"] = "Grafik"
             st.rerun()
-            
     with col3:
         if st.button("💾\nDATA ENGINE\n(Analisis CSV)", use_container_width=True):
             st.session_state["main_nav"] = "Statistik"
@@ -262,8 +279,9 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
     with st.chat_message("assistant"):
         placeholder = st.empty()
         with st.spinner("CALCULATING..."):
-            try:
+            try: # PENGAMAN CHAT
                 resp = model.generate_content("Jawab LaTeX & Singkat: " + user_msg)
                 placeholder.markdown(resp.text)
                 st.session_state.messages.append({"role": "assistant", "content": resp.text})
-            except: st.error("ERROR")
+            except Exception as e:
+                st.error("Gagal terhubung. Coba lagi nanti.")
