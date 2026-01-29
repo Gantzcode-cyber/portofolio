@@ -6,3 +6,5 @@ numpy
 fpdf
 pandas
 streamlit-drawable-canvas
+requests
+streamlit-lottie
