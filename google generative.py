@@ -120,7 +120,7 @@ try:
         st.stop()
 except: st.stop()
 
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('moduls/gemini-2.5-flash')
 if "messages" not in st.session_state: st.session_state.messages = []
 
 # --- 5. SIDEBAR ---
