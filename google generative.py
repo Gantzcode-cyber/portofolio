@@ -19,7 +19,7 @@ except Exception:
     st.stop()
 
 # Menggunakan Model yang support Teks & Gambar
-model = genai.GenerativeModel('gemini-pro')
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 # --- INISIALISASI SESSION STATE (MEMORY) ---
 if "messages" not in st.session_state:
