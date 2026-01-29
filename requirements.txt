@@ -8,3 +8,4 @@ pandas
 streamlit-drawable-canvas
 requests
 streamlit-lottie
+streamlit-option-menu
