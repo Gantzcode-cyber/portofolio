@@ -4,12 +4,13 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
 from fpdf import FPDF
-import base64
+import pandas as pd
+from streamlit_drawable_canvas import st_canvas # Library Papan Tulis
 
 # --- 1. KONFIGURASI HALAMAN ---
 st.set_page_config(
-    page_title="AI Math Master",
-    page_icon="🎓",
+    page_title="AI Math Ultimate",
+    page_icon="🧠",
     layout="wide"
 )
 
@@ -19,152 +20,114 @@ try:
         api_key = st.secrets["GEMINI_API_KEY"]
         genai.configure(api_key=api_key)
     else:
-        st.error("⚠️ API Key belum diatur! Mohon atur di menu Settings > Secrets.")
+        st.error("⚠️ API Key belum diatur!")
         st.stop()
-except Exception as e:
-    st.error(f"Terjadi kesalahan konfigurasi: {e}")
+except Exception:
+    st.error("Error konfigurasi API.")
     st.stop()
 
 model = genai.GenerativeModel('models/gemini-2.5-flash')
 
-# --- 3. INISIALISASI SESSION STATE ---
+# --- 3. SESSION STATE ---
 if "messages" not in st.session_state:
     st.session_state.messages = [
-        {"role": "assistant", "content": "Halo! Saya siap membantu. Cek menu samping untuk Grafik dan Mode Ujian."}
+        {"role": "assistant", "content": "Halo! Silakan tulis soal di papan tulis, upload foto, atau ketik manual."}
     ]
 
-# --- 4. FUNGSI PEMBUAT PDF ---
-def create_pdf(text_content):
+# --- 4. HELPER PDF ---
+def create_pdf(text):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
-    
-    # Header
-    pdf.set_font("Arial", 'B', 16)
-    pdf.cell(200, 10, txt="Latihan Soal Matematika", ln=True, align='C')
-    pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, txt="Dibuat oleh AI Math Master", ln=True, align='C')
-    pdf.ln(10)
-    
-    # Content (Sanitasi teks agar tidak error di FPDF)
-    # FPDF standar tidak support emoji/simbol matematika rumit, jadi kita bersihkan
-    clean_text = text_content.encode('latin-1', 'replace').decode('latin-1')
+    clean_text = text.encode('latin-1', 'replace').decode('latin-1')
     pdf.multi_cell(0, 10, clean_text)
-    
-    # Output string bytes
     return pdf.output(dest='S').encode('latin-1')
 
-# --- 5. SIDEBAR (MENU PERKAKAS) ---
+# --- 5. SIDEBAR SUPER LENGKAP ---
 with st.sidebar:
     st.title("🧰 Menu Perkakas")
     
-    # === FITUR A: UJIAN GENERATOR (BARU!) ===
-    st.subheader("📝 Generator Ujian")
-    with st.expander("Buat Soal Latihan"):
-        topik = st.text_input("Topik (misal: Aljabar)", "Trigonometri")
-        jumlah_soal = st.slider("Jumlah Soal:", 1, 10, 5)
-        tingkat = st.selectbox("Tingkat Kesulitan:", ["Mudah", "Sedang", "Sulit/Olimpiade"])
+    # === FITUR A: PAPAN TULIS (BARU & KEREN!) ===
+    st.subheader("✏️ Papan Tulis")
+    with st.expander("Buka Papan Tulis", expanded=True):
+        st.caption("Coret rumus di sini:")
+        # Membuat Canvas
+        canvas_result = st_canvas(
+            fill_color="rgba(255, 165, 0, 0.3)",  # Warna isi
+            stroke_width=3, # Ketebalan pena
+            stroke_color="#000000", # Warna tinta hitam
+            background_color="#ffffff", # Kertas putih
+            height=200,
+            width=280,
+            drawing_mode="freedraw",
+            key="canvas",
+        )
         
-        if st.button("Buat PDF Soal"):
-            with st.spinner("Sedang meracik soal..."):
-                try:
-                    prompt_ujian = f"""
-                    Buatkan {jumlah_soal} soal latihan matematika tentang {topik} dengan tingkat kesulitan {tingkat}.
-                    Format output:
-                    1. Soal 1...
-                    2. Soal 2...
-                    
-                    --- Kunci Jawaban ---
-                    1. Jawaban...
-                    
-                    Tolong jangan gunakan simbol LaTeX yang rumit, gunakan teks biasa agar mudah dicetak ke PDF.
-                    """
-                    response = model.generate_content(prompt_ujian)
-                    ujian_text = response.text
-                    
-                    # Tampilkan di chat utama juga
-                    st.session_state.messages.append({"role": "assistant", "content": f"**Mode Ujian: {topik}**\n\n{ujian_text}"})
-                    
-                    # Buat PDF
-                    pdf_bytes = create_pdf(ujian_text)
-                    st.success("Soal siap!")
-                    
-                    # Tombol Download PDF
-                    st.download_button(
-                        label="📥 Download PDF Soal",
-                        data=pdf_bytes,
-                        file_name=f"Soal_{topik}.pdf",
-                        mime="application/pdf"
-                    )
-                except Exception as e:
-                    st.error(f"Gagal membuat soal: {e}")
+        if st.button("Kirim Tulisan Tangan"):
+            if canvas_result.image_data is not None:
+                # Konversi coretan canvas ke format Gambar yg dimengerti Gemini
+                img_data = canvas_result.image_data.astype("uint8")
+                img_pil = Image.fromarray(img_data)
+                
+                # Masukkan ke proses AI
+                st.session_state.messages.append({"role": "user", "content": "[Mengirim Tulisan Tangan]"})
+                with st.spinner("Membaca tulisan tangan..."):
+                    prompt_handwriting = "Baca tulisan matematika ini dan selesaikan langkah demi langkah."
+                    response = model.generate_content([prompt_handwriting, img_pil])
+                    st.session_state.messages.append({"role": "assistant", "content": response.text})
+                    st.rerun()
 
     st.divider()
 
-    # === FITUR B: GRAPHING CALCULATOR ===
-    st.subheader("📈 Plot Grafik")
-    with st.expander("Buka Kalkulator Grafik"):
-        st.caption("Contoh: x**2, np.sin(x)")
-        formula = st.text_input("Rumus f(x):", value="np.sin(x)")
-        
-        if st.button("Gambar Grafik"):
-            try:
-                x = np.linspace(-10, 10, 100)
-                safe_formula = formula.replace("^", "**")
-                y = eval(safe_formula)
-                fig, ax = plt.subplots(figsize=(4, 3))
-                ax.plot(x, y)
-                ax.grid(True)
-                st.pyplot(fig)
-            except Exception as e:
-                st.error(f"Error rumus: {e}")
+    # === FITUR B: ANALIS DATA ===
+    st.subheader("📊 Statistik")
+    with st.expander("Analisis CSV"):
+        file_csv = st.file_uploader("Upload CSV", type=["csv"])
+        if file_csv and st.button("Analisis"):
+            df = pd.read_csv(file_csv)
+            info = df.describe().to_string()
+            prompt = f"Analisis data ini sebagai Data Scientist:\n{info}"
+            resp = model.generate_content(prompt)
+            st.session_state.messages.append({"role": "assistant", "content": resp.text})
+            st.rerun()
+
+    # === FITUR C: FITUR LAINNYA (Diringkas biar rapi) ===
+    st.subheader("Fitur Lain")
+    if st.checkbox("Tampilkan Grafik & PDF"):
+        # Grafik
+        rumus = st.text_input("Grafik f(x):", "x**2")
+        if st.button("Plot"):
+            x = np.linspace(-10, 10, 100)
+            y = eval(rumus.replace("^", "**"))
+            fig, ax = plt.subplots(figsize=(4, 2))
+            ax.plot(x, y); ax.grid(True)
+            st.pyplot(fig)
+            
+        # PDF
+        if st.button("Buat PDF Latihan"):
+            resp = model.generate_content("Buat 3 soal matematika random.")
+            pdf = create_pdf(resp.text)
+            st.download_button("Download PDF", pdf, "soal.pdf")
 
     st.divider()
-
-    # === FITUR C: UPLOAD GAMBAR ===
-    st.subheader("📸 Scan Soal")
-    uploaded_file = st.file_uploader("Upload foto", type=["jpg", "png", "jpeg"])
-    image_prompt = None
-    if uploaded_file:
-        image = Image.open(uploaded_file)
-        st.image(image, caption="Preview", use_container_width=True)
-        if st.button("🔍 Bedah Soal Ini"):
-            image_prompt = image
-
-    st.divider()
-    
     if st.button("🗑️ Reset Chat"):
         st.session_state.messages = []
         st.rerun()
 
-# --- 6. AREA CHAT UTAMA ---
-st.title("🎓 AI Math Master Pro")
-st.caption("All-in-One: Chat, Vision, Graphing, Exam PDF")
+# --- 6. CHAT AREA ---
+st.title("🧠 AI Math Ultimate")
 
+# Tampilkan Chat
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# --- 7. LOGIKA UTAMA ---
-
-# Jika ada gambar
-if image_prompt:
-    st.session_state.messages.append({"role": "user", "content": "[Mengirim Foto]"})
-    with st.spinner("Menganalisis..."):
-        response = model.generate_content(["Selesaikan soal matematika di gambar ini langkah demi langkah.", image_prompt])
-        st.chat_message("assistant").markdown(response.text)
-        st.session_state.messages.append({"role": "assistant", "content": response.text})
-
-# Jika ada teks
-if prompt := st.chat_input("Ketik soal matematika..."):
-    st.chat_message("user").markdown(prompt)
+# --- 7. INPUT TEXT ---
+if prompt := st.chat_input("Ketik sesuatu..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
+    st.chat_message("user").markdown(prompt)
 
-    with st.spinner("Sedang berpikir..."):
-        try:
-            sys_prompt = "Anda adalah guru matematika. Gunakan LaTeX ($) untuk rumus. Jelaskan step-by-step.\nSoal: "
-            response = model.generate_content(sys_prompt + prompt)
-            st.chat_message("assistant").markdown(response.text)
-            st.session_state.messages.append({"role": "assistant", "content": response.text})
-        except Exception as e:
-            st.error(f"Error: {e}")
+    with st.spinner("Menghitung..."):
+        resp = model.generate_content(prompt)
+        st.session_state.messages.append({"role": "assistant", "content": resp.text})
+        st.chat_message("assistant").markdown(resp.text)
