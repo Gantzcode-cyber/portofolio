@@ -6,6 +6,8 @@ import numpy as np
 from fpdf import FPDF
 import pandas as pd
 from streamlit_drawable_canvas import st_canvas
+import requests
+from streamlit_lottie import st_lottie
 import time
 
 # --- 1. KONFIGURASI HALAMAN ---
@@ -16,134 +18,118 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- 2. LOGIKA ANIMASI & CSS CANGGIH ---
-def inject_custom_css(is_dark):
-    # Tentukan warna berdasarkan mode
-    if is_dark:
-        bg_color = "#0e1117"
-        text_color = "#E0E0E0"
-        card_bg = "#1e232f"
-        border_color = "#2b313e"
-        accent_color = "#00DFD8" # Cyan Neon
-        shadow = "rgba(0,0,0,0.5)"
-    else:
-        bg_color = "#ffffff"
-        text_color = "#000000"
-        card_bg = "#f0f2f6"
-        border_color = "#dce0e6"
-        accent_color = "#007CF0" # Blue
-        shadow = "rgba(0,0,0,0.1)"
+# --- 2. FUNGSI LOADER ANIMASI (LOTTIE) ---
+def load_lottieurl(url):
+    r = requests.get(url)
+    if r.status_code != 200:
+        return None
+    return r.json()
 
-    # Inject CSS dengan Animasi
+# Load Animasi dari Internet (Robot & Math)
+lottie_robot = load_lottieurl("https://lottie.host/5a8059f1-3226-444a-93f4-0b7305986877/P1sF2Xn3vR.json")
+lottie_coding = load_lottieurl("https://assets5.lottiefiles.com/packages/lf20_fcfjwiyb.json")
+lottie_success = load_lottieurl("https://assets9.lottiefiles.com/packages/lf20_lk80fpsm.json")
+
+# --- 3. CSS "JELLY" & CURSOR EFFECT ---
+def inject_custom_css(is_dark):
+    # Warna Tema
+    if is_dark:
+        bg_main = "#0e1117"
+        text_color = "#fff"
+        card_bg = "linear-gradient(145deg, #1e232f, #161a23)"
+        shadow = "5px 5px 10px #0b0d12, -5px -5px 10px #212734" # Neumorphism Dark
+        btn_color = "#00DFD8"
+    else:
+        bg_main = "#e0e5ec"
+        text_color = "#333"
+        card_bg = "linear-gradient(145deg, #ffffff, #e6e6e6)"
+        shadow = "5px 5px 10px #bebebe, -5px -5px 10px #ffffff" # Neumorphism Light
+        btn_color = "#007CF0"
+
     st.markdown(f"""
     <style>
-        /* 1. Animasi Masuk (Fade In) */
-        @keyframes fadeIn {{
-            0% {{ opacity: 0; transform: translateY(20px); }}
-            100% {{ opacity: 1; transform: translateY(0); }}
-        }}
-        
+        /* BACKGROUND UTAMA */
         .stApp {{
-            background-color: {bg_color};
+            background-color: {bg_main};
             color: {text_color};
-            animation: fadeIn 0.8s ease-out;
         }}
 
-        /* 2. Tombol yang 'Membal' saat diklik */
+        /* TOMBOL "JELLY" (MEMBAL SAAT DIKLIK) */
         .stButton>button {{
-            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            border-radius: 12px;
-            border: 2px solid transparent;
+            color: {text_color};
+            background: {card_bg};
+            border: none;
+            border-radius: 15px;
+            box-shadow: {shadow};
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            font-weight: bold;
         }}
         .stButton>button:hover {{
-            transform: scale(1.05);
-            border-color: {accent_color};
-            box-shadow: 0 5px 15px {shadow};
-            color: {accent_color};
+            transform: translateY(-3px) scale(1.02);
+            color: {btn_color};
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
         }}
         .stButton>button:active {{
-            transform: scale(0.95);
+            transform: translateY(2px) scale(0.95); /* Efek Membal */
+            box-shadow: inset 2px 2px 5px rgba(0,0,0,0.2);
         }}
 
-        /* 3. Kartu Dashboard Melayang */
-        .dashboard-card {{
-            background-color: {card_bg};
-            padding: 25px;
+        /* INPUT TEXT FIELD CUSTOM */
+        .stTextInput>div>div>input {{
+            border-radius: 12px;
+            border: 2px solid transparent;
+            background-color: {bg_main};
+            box-shadow: inset 3px 3px 6px rgba(0,0,0,0.3), inset -3px -3px 6px rgba(255,255,255,0.05);
+            color: {text_color};
+            transition: 0.3s;
+        }}
+        .stTextInput>div>div>input:focus {{
+            border-color: {btn_color};
+            outline: none;
+        }}
+
+        /* KARTU DASHBOARD BERGERAK */
+        .hover-card {{
+            background: {card_bg};
+            padding: 20px;
             border-radius: 20px;
-            border: 1px solid {border_color};
+            box-shadow: {shadow};
             text-align: center;
-            transition: all 0.3s ease;
+            transition: transform 0.4s ease;
             cursor: pointer;
-            box-shadow: 0 4px 6px {shadow};
+            height: 100%;
         }}
-        .dashboard-card:hover {{
-            transform: translateY(-10px);
-            box-shadow: 0 10px 20px {shadow};
-            border-color: {accent_color};
+        .hover-card:hover {{
+            transform: scale(1.05) rotate(1deg); /* Miring sedikit saat hover */
+            z-index: 10;
         }}
 
-        /* 4. Judul Gradient Animasi */
-        .title-animate {{
-            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-            background-size: 400% 400%;
-            animation: gradient 15s ease infinite;
+        /* JUDUL GRADIENT BERGERAK */
+        .animated-title {{
+            background: linear-gradient(90deg, #ff00cc, #333399, #00DFD8);
+            background-size: 200% auto;
+            color: #fff;
+            background-clip: text;
+            text-fill-color: transparent;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            animation: shine 3s linear infinite;
+            font-size: 3em;
             font-weight: 900;
-            font-size: 3.5em;
         }}
-        @keyframes gradient {{
-            0% {{ background-position: 0% 50%; }}
-            50% {{ background-position: 100% 50%; }}
-            100% {{ background-position: 0% 50%; }}
+        @keyframes shine {{
+            to {{ background-position: 200% center; }}
         }}
-
-        /* 5. Sidebar Styling */
-        [data-testid="stSidebar"] {{
-            background-color: {bg_color};
-            border-right: 1px solid {border_color};
-        }}
-        
     </style>
-    
-    <script>
-    const cursor = document.createElement('div');
-    cursor.style.width = '20px';
-    cursor.style.height = '20px';
-    cursor.style.border = '2px solid {accent_color}';
-    cursor.style.borderRadius = '50%';
-    cursor.style.position = 'fixed';
-    cursor.style.pointerEvents = 'none';
-    cursor.style.zIndex = '9999';
-    cursor.style.transition = 'transform 0.1s';
-    document.body.appendChild(cursor);
-
-    document.addEventListener('mousemove', (e) => {{
-        cursor.style.left = e.clientX - 10 + 'px';
-        cursor.style.top = e.clientY - 10 + 'px';
-    }});
-    
-    document.addEventListener('mousedown', () => {{
-        cursor.style.transform = 'scale(0.8)';
-        cursor.style.background = '{accent_color}';
-        cursor.style.opacity = '0.5';
-    }});
-    
-    document.addEventListener('mouseup', () => {{
-        cursor.style.transform = 'scale(1)';
-        cursor.style.background = 'transparent';
-        cursor.style.opacity = '1';
-    }});
-    </script>
     """, unsafe_allow_html=True)
-    
+
     # Set Matplotlib Theme
     if is_dark:
         plt.style.use('dark_background')
     else:
         plt.style.use('default')
 
-# --- 3. KONFIGURASI API KEY ---
+# --- 4. CONFIG API ---
 try:
     if "GEMINI_API_KEY" in st.secrets:
         api_key = st.secrets["GEMINI_API_KEY"]
@@ -151,8 +137,8 @@ try:
     else:
         st.error("⚠️ API Key belum diatur!")
         st.stop()
-except Exception:
-    st.error("Error konfigurasi API.")
+except:
+    st.error("Error Config API")
     st.stop()
 
 model = genai.GenerativeModel('moduls/gemini-2.5-flash')
@@ -160,205 +146,158 @@ model = genai.GenerativeModel('moduls/gemini-2.5-flash')
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# --- 4. SIDEBAR ---
+# --- 5. SIDEBAR ---
 with st.sidebar:
-    st.markdown("### ⚙️ Pengaturan")
+    # Toggle Dark Mode (Simpan di session state)
+    if 'dark_mode' not in st.session_state: st.session_state.dark_mode = True
+    dark_mode = st.toggle("🌙 Tema Gelap", value=st.session_state.dark_mode)
+    st.session_state.dark_mode = dark_mode
+    inject_custom_css(dark_mode) # Inject CSS berdasarkan tema
     
-    # === SWITCH MODE TERANG/GELAP (YANG ANDA MINTA) ===
-    # Kita simpan state di session agar tidak reset saat refresh
-    if 'dark_mode' not in st.session_state:
-        st.session_state.dark_mode = True
-    
-    dark_mode = st.toggle("🌙 Mode Gelap / Terang", value=st.session_state.dark_mode)
-    st.session_state.dark_mode = dark_mode # Update state
-    
-    # PANGGIL FUNGSI CSS DI SINI
-    inject_custom_css(dark_mode)
-    
-    st.divider()
-    st.markdown("### 🧰 Menu Alat")
-    
-    menu = st.radio(
-        "Navigasi:",
-        ["🏠 Beranda", "✏️ Papan Tulis", "📊 Statistik", "📈 Grafik", "📝 Ujian PDF"],
-        index=0
-    )
-    
-    st.divider()
-    
-    # === FITUR-FITUR SIDEBAR ===
-    # 1. Papan Tulis
-    if menu == "✏️ Papan Tulis":
-        st.subheader("Canvas Digital")
-        # Warna canvas menyesuaikan mode
-        c_bg = "#000" if dark_mode else "#fff"
-        c_stroke = "#fff" if dark_mode else "#000"
+    # Animasi Lottie Kecil di Sidebar
+    if lottie_coding:
+        st_lottie(lottie_coding, height=150, key="coding")
         
-        canvas_result = st_canvas(
-            fill_color="rgba(255, 165, 0, 0.3)",
-            stroke_width=3, stroke_color=c_stroke,
-            background_color=c_bg,
-            height=200, width=280,
-            drawing_mode="freedraw", key="canvas",
-        )
-        if st.button("Kirim Tulisan"):
+    st.divider()
+    menu = st.radio("Navigasi:", ["🏠 Beranda", "✏️ Papan Tulis", "📊 Statistik", "📈 Grafik", "📝 Ujian PDF"])
+    st.divider()
+
+    # --- FITUR SIDEBAR ---
+    if menu == "✏️ Papan Tulis":
+        st.subheader("Canvas Ajaib")
+        bg_c = "#000" if dark_mode else "#fff"
+        stroke_c = "#fff" if dark_mode else "#000"
+        canvas_result = st_canvas(fill_color="rgba(255, 165, 0, 0.3)", stroke_width=3, stroke_color=stroke_c, background_color=bg_c, height=200, width=280, drawing_mode="freedraw", key="canvas")
+        if st.button("✨ Kirim Coretan"):
             if canvas_result.image_data is not None:
-                img_data = canvas_result.image_data.astype("uint8")
-                img_pil = Image.fromarray(img_data)
-                st.session_state.messages.append({"role": "user", "content": "[Mengirim Tulisan Tangan]"})
-                with st.spinner("Membaca tulisan..."):
-                    resp = model.generate_content(["Selesaikan:", img_pil])
+                img = Image.fromarray(canvas_result.image_data.astype("uint8"))
+                st.session_state.messages.append({"role": "user", "content": "[Gambar]"})
+                with st.spinner("AI sedang melihat..."):
+                    resp = model.generate_content(["Jelaskan:", img])
                     st.session_state.messages.append({"role": "assistant", "content": resp.text})
                     st.rerun()
 
-    # 2. Statistik
     elif menu == "📊 Statistik":
-        st.subheader("Data Analyst")
-        file_csv = st.file_uploader("Upload CSV", type=["csv"])
-        if file_csv and st.button("Analisis"):
-            df = pd.read_csv(file_csv)
-            info = df.describe().to_string()
-            st.dataframe(df.head(3))
-            prompt = f"Analisis statistik:\n{info}\nBerikan insight singkat."
-            with st.spinner("Menganalisis..."):
-                resp = model.generate_content(prompt)
+        file = st.file_uploader("Upload CSV", type=["csv"])
+        if file and st.button("🚀 Analisis"):
+            df = pd.read_csv(file)
+            st.dataframe(df.head())
+            with st.spinner("Menganalisis data..."):
+                resp = model.generate_content(f"Analisis data ini:\n{df.describe().to_string()}")
                 st.session_state.messages.append({"role": "assistant", "content": resp.text})
                 st.rerun()
 
-    # 3. Grafik
     elif menu == "📈 Grafik":
-        st.subheader("Plotter")
-        rumus = st.text_input("f(x) =", "x**2")
-        col1, col2 = st.columns(2)
-        with col1: x_min = st.number_input("Min", -10)
-        with col2: x_max = st.number_input("Max", 10)
-        
-        if st.button("Gambar"):
-            try:
-                x = np.linspace(x_min, x_max, 100)
-                y = eval(rumus.replace("^", "**"))
-                fig, ax = plt.subplots(figsize=(4, 3))
-                
-                # Warna Grafik Custom
-                line_c = '#00DFD8' if dark_mode else '#007CF0'
-                grid_c = '#444' if dark_mode else '#ddd'
-                
-                if dark_mode:
-                    fig.patch.set_facecolor('#0e1117')
-                    ax.set_facecolor('#0e1117')
-                    ax.spines['bottom'].set_color('white')
-                    ax.spines['left'].set_color('white')
-                    ax.tick_params(colors='white')
-                
-                ax.plot(x, y, color=line_c, linewidth=2)
-                ax.grid(True, color=grid_c, linestyle='--', alpha=0.5)
-                # Hilangkan border atas/kanan
-                ax.spines['top'].set_visible(False)
-                ax.spines['right'].set_visible(False)
-                
-                st.pyplot(fig)
-            except: st.error("Rumus Error")
+        rumus = st.text_input("f(x) =", "np.sin(x)*x")
+        if st.button("🎨 Gambar"):
+            x = np.linspace(-10, 10, 100)
+            y = eval(rumus)
+            fig, ax = plt.subplots(figsize=(4,3))
+            
+            # Styling Grafik
+            color_line = '#00DFD8' if dark_mode else '#007CF0'
+            if dark_mode:
+                fig.patch.set_facecolor('#0e1117')
+                ax.set_facecolor('#0e1117')
+                ax.spines['bottom'].set_color('white')
+                ax.spines['left'].set_color('white')
+                ax.tick_params(colors='white')
+            
+            ax.plot(x, y, color=color_line, linewidth=2.5)
+            ax.grid(True, linestyle='--', alpha=0.3)
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            st.pyplot(fig)
 
-    # 4. PDF
     elif menu == "📝 Ujian PDF":
         def create_pdf(text):
-            pdf = FPDF()
-            pdf.add_page()
-            pdf.set_font("Arial", size=12)
-            clean_text = text.encode('latin-1', 'replace').decode('latin-1')
-            pdf.multi_cell(0, 7, clean_text)
+            pdf = FPDF(); pdf.add_page(); pdf.set_font("Arial", size=12)
+            pdf.multi_cell(0, 7, text.encode('latin-1', 'replace').decode('latin-1'))
             return pdf.output(dest='S').encode('latin-1')
-            
-        st.subheader("Soal Generator")
-        topik = st.text_input("Topik", "Aljabar")
-        if st.button("Buat PDF"):
-            with st.spinner("Membuat..."):
-                resp = model.generate_content(f"Buat 5 soal {topik} & jawaban.")
-                st.session_state.messages.append({"role": "assistant", "content": f"Preview:\n{resp.text}"})
-                pdf_bytes = create_pdf(resp.text)
-                st.download_button("Download", pdf_bytes, "soal.pdf")
+        topik = st.text_input("Topik", "Kalkulus")
+        if st.button("📄 Generate PDF"):
+            resp = model.generate_content(f"Buat 3 soal {topik} & jawaban.")
+            st.download_button("Download", create_pdf(resp.text), "soal.pdf")
 
-    st.divider()
-    if st.button("🗑️ Reset Chat", type="primary"):
+    if st.button("🗑️ Reset", type="primary"):
         st.session_state.messages = []
         st.rerun()
 
-# --- 5. AREA UTAMA (HERO SECTION ANIMATED) ---
+# --- 6. HERO SECTION (HALAMAN UTAMA) ---
 
-# Judul dengan Animasi Gradient Bergerak
-st.markdown('<h1 class="title-animate">✨ AI Math Ultimate</h1>', unsafe_allow_html=True)
+# Kolom Judul & Animasi
+col_title, col_anim = st.columns([2, 1])
 
-# === LAYAR DASHBOARD (Jika chat kosong) ===
+with col_title:
+    st.markdown('<h1 class="animated-title">AI Math Ultimate</h1>', unsafe_allow_html=True)
+    st.write("Asisten Matematika Tercanggih dengan Vision, Grafik, dan Analisis Data.")
+
+with col_anim:
+    # Menampilkan Robot Bergerak (Lottie)
+    if lottie_robot:
+        st_lottie(lottie_robot, height=200, key="robot_main")
+
+# --- 7. DASHBOARD CARDS ---
 if not st.session_state.messages:
-    # Kartu Intro
-    st.markdown(f"""
-    <div style='background-color: {"#1e232f" if dark_mode else "#f0f2f6"}; padding: 20px; border-radius: 15px; border-left: 5px solid {"#00DFD8" if dark_mode else "#007CF0"}; animation: fadeIn 1s ease-out;'>
-        <h4>👋 Halo, Master Matematika!</h4>
-        <p>Saya siap membantu. Coba hover mouse ke kartu di bawah untuk melihat efeknya.</p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.divider()
+    c1, c2, c3 = st.columns(3)
     
-    st.write("") 
-    
-    # 3 Kolom Kartu Pintar (Floating Cards)
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
+    with c1:
         st.markdown("""
-        <div class="dashboard-card">
-            <h1>📸</h1>
+        <div class="hover-card">
+            <h2>📸</h2>
             <h3>Vision AI</h3>
-            <p>Upload foto soal, saya baca.</p>
+            <p>Upload foto soal, AI akan membaca & menjawabnya.</p>
         </div>
         """, unsafe_allow_html=True)
-        
-    with col2:
+    with c2:
         st.markdown("""
-        <div class="dashboard-card">
-            <h1>📈</h1>
+        <div class="hover-card">
+            <h2>📈</h2>
             <h3>Auto Graph</h3>
-            <p>Plot rumus matematika indah.</p>
+            <p>Visualisasi rumus matematika otomatis.</p>
         </div>
         """, unsafe_allow_html=True)
-        
-    with col3:
+    with c3:
         st.markdown("""
-        <div class="dashboard-card">
-            <h1>📝</h1>
-            <h3>Exam Gen</h3>
-            <p>Bikin soal ujian + PDF.</p>
+        <div class="hover-card">
+            <h2>📊</h2>
+            <h3>Data Analyst</h3>
+            <p>Upload Excel/CSV, dapatkan insight instan.</p>
         </div>
         """, unsafe_allow_html=True)
 
-# === TAMPILKAN CHAT ===
+# --- 8. CHAT AREA ---
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# --- 6. INPUT UTAMA ---
-if prompt := st.chat_input("Ketik soal matematika..."):
+# --- 9. INPUT & RESPON ---
+if prompt := st.chat_input("Ketik pertanyaan matematika..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.rerun()
 
-# Proses AI
 if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
     user_msg = st.session_state.messages[-1]["content"]
-    with st.chat_message("user"):
-        st.markdown(user_msg)
-        
+    with st.chat_message("user"): st.markdown(user_msg)
+    
     with st.chat_message("assistant"):
-        with st.spinner("Sedang berpikir..."):
+        placeholder = st.empty()
+        # Efek Loading dengan Lottie
+        with st.spinner("Sedang memproses..."):
             try:
-                sys = "Anda adalah asisten matematika jenius. Jawab dengan LaTeX ($$). Jelaskan step-by-step."
+                sys = "Jawab dengan format LaTeX. Jelaskan step-by-step."
                 response = model.generate_content(sys + user_msg)
                 
-                # Efek mengetik (Typing Effect) sederhana
-                placeholder = st.empty()
-                full_response = response.text
+                # Efek mengetik (Simulasi)
+                full_resp = response.text
+                disp_text = ""
+                for char in full_resp.split(" "): # Muncul per kata
+                    disp_text += char + " "
+                    placeholder.markdown(disp_text + "▌")
+                    time.sleep(0.05)
+                placeholder.markdown(full_resp)
                 
-                # Menampilkan langsung (streaming effect di Streamlit butuh code khusus, kita tampilkan langsung agar cepat)
-                placeholder.markdown(full_response)
-                
-                st.session_state.messages.append({"role": "assistant", "content": full_response})
-            except Exception as e:
-                st.error("Maaf, terjadi kesalahan koneksi.")
+                st.session_state.messages.append({"role": "assistant", "content": full_resp})
+            except:
+                st.error("Gagal terhubung.")
