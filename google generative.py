@@ -49,23 +49,21 @@ def inject_custom_css(is_dark):
         .stApp {{ background-color: {bg_main}; color: {text_color}; }}
 
         /* --- 1. CHAT INPUT YANG KEREN (NEON GLOW) --- */
-        .stChatInput {{
-            border-radius: 20px;
-            transition: all 0.3s ease;
-        }}
-        /* Mengubah kotak input text area */
+        /* Target area input chat Streamlit yang biasanya kaku */
         .stChatInput textarea {{
             background-color: {input_bg} !important;
             color: {text_color} !important;
             border: 2px solid #444;
             border-radius: 15px;
+            transition: all 0.3s ease;
         }}
         /* Efek Glow saat diklik/fokus */
         .stChatInput textarea:focus {{
             border-color: {glow_color} !important;
             box-shadow: 0 0 15px {glow_color}50; /* 50 adalah transparansi */
         }}
-        /* Container Input */
+        
+        /* Hilangkan background container input bawaan biar bersih */
         div[data-testid="stChatInput"] {{
             background: transparent;
             padding-bottom: 20px;
@@ -114,7 +112,7 @@ try:
         st.stop()
 except: st.stop()
 
-model = genai.GenerativeModel('models/gemini-2.5-flash')
+model = genai.GenerativeModel('gemini-1.5-flash')
 if "messages" not in st.session_state: st.session_state.messages = []
 
 # --- 5. SIDEBAR KEREN (OPTION MENU) ---
