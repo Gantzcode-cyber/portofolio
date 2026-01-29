@@ -27,96 +27,88 @@ def load_lottieurl(url):
         return r.json()
     except: return None
 
-# Menggunakan animasi robot yang lebih futuristik
 lottie_robot = load_lottieurl("https://lottie.host/5a8059f1-3226-444a-93f4-0b7305986877/P1sF2Xn3vR.json")
 
-# --- 3. CSS "CYBER DARK" (HITAM & SILUET BIRU) ---
+# --- 3. CSS "CYBER DARK" (ANTI-BOCOR PUTIH) ---
 st.markdown("""
 <style>
-    /* RESET & BACKGROUND HITAM PEKAT */
+    /* RESET GLOBAL */
     .stApp {
-        background-color: #050505;
-        color: #E0FFFF;
-        font-family: 'Courier New', Courier, monospace; /* Font ala Coding */
-    }
-
-    /* SIDEBAR */
-    [data-testid="stSidebar"] {
         background-color: #000000;
-        border-right: 1px solid #00E5FF; /* Garis Biru Neon */
+        color: #00E5FF;
+        font-family: 'Courier New', monospace;
     }
 
-    /* TOMBOL "CHAT BARU" & TOMBOL LAINNYA */
+    /* --- PERBAIKAN SIDEBAR (AGAR TIDAK ADA KOTAK PUTIH) --- */
+    [data-testid="stSidebar"] {
+        background-color: #000000 !important;
+        border-right: 1px solid #00E5FF;
+    }
+    
+    /* Memaksa container menu opsi menjadi hitam */
+    div[data-testid="stSidebarNav"] {
+        background-color: #000000 !important;
+    }
+
+    /* --- PERBAIKAN BAR BAWAH (INPUT CHAT) --- */
+    /* Target container paling bawah */
+    div[data-testid="stBottom"] {
+        background-color: #000000 !important; /* Paksa Hitam */
+        border-top: 1px solid #00E5FF;
+        padding-bottom: 20px;
+    }
+    /* Target area input text */
+    .stChatInput textarea {
+        background-color: #0a0a0a !important;
+        color: #00E5FF !important;
+        border: 1px solid #333 !important;
+    }
+    .stChatInput textarea:focus {
+        border-color: #00E5FF !important;
+        box-shadow: 0 0 10px #00E5FF;
+    }
+
+    /* --- TOMBOL --- */
     .stButton>button {
         width: 100%;
-        border-radius: 0px !important; /* KOTAK TEGAS */
+        border-radius: 0px;
         background-color: #000;
         color: #00E5FF;
         border: 1px solid #00E5FF;
-        transition: all 0.3s ease;
-        text-transform: uppercase;
-        letter-spacing: 2px;
         font-weight: bold;
+        transition: 0.3s;
     }
     .stButton>button:hover {
         background-color: #00E5FF;
         color: #000;
-        box-shadow: 0 0 20px #00E5FF; /* Efek Cahaya */
+        box-shadow: 0 0 15px #00E5FF;
     }
 
-    /* CARD DASHBOARD (KOTAK PERSEGI PANJANG) */
+    /* --- KARTU DASHBOARD --- */
     .cyber-card {
-        background: #0a0a0a;
-        padding: 30px;
+        background: #050505;
         border: 1px solid #333;
-        border-radius: 0px; /* HAPUS OVAL */
+        padding: 20px;
         text-align: center;
         transition: 0.3s;
-        height: 100%;
         border-left: 3px solid #333;
     }
     .cyber-card:hover {
         border-color: #00E5FF;
-        border-left: 10px solid #00E5FF; /* Efek geser garis */
-        box-shadow: 0 0 30px rgba(0, 229, 255, 0.2);
+        border-left: 10px solid #00E5FF;
         transform: translateY(-5px);
+        box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
     }
 
-    /* INPUT CHAT (BAGIAN BAWAH) */
-    .stChatInput textarea {
-        background-color: #000 !important;
-        color: #00E5FF !important;
-        border: 1px solid #333;
-        border-radius: 0px !important; /* KOTAK */
-    }
-    .stChatInput textarea:focus {
-        border-color: #00E5FF !important;
-        box-shadow: 0 0 15px rgba(0, 229, 255, 0.5);
-    }
-    
-    /* MEMPERBAIKI AREA BAWAH AGAR HITAM */
-    div[data-testid="stBottom"] {
-        background-color: #050505 !important;
-        border-top: 1px solid #00E5FF;
-    }
-
-    /* JUDUL GLITCH EFFECT */
-    .glitch-title {
-        color: #fff;
-        font-size: 3em;
-        font-weight: bold;
-        text-shadow: 2px 2px 0px #00E5FF;
-    }
-    
-    /* HILANGKAN MARGIN ATAS BIAR FULL */
-    .block-container {
-        padding-top: 2rem;
+    /* --- FIX CANVAS AGAR FULL (TIDAK ADA BACKGROUND PUTIH) --- */
+    iframe[title="streamlit_drawable_canvas.st_canvas"] {
+        background-color: #000000;
     }
 
 </style>
 """, unsafe_allow_html=True)
 
-# Set Matplotlib agar hitam
+# Set Grafik jadi Gelap
 plt.style.use('dark_background')
 
 # --- 4. API CONFIG ---
@@ -135,179 +127,138 @@ if "messages" not in st.session_state: st.session_state.messages = []
 with st.sidebar:
     st.markdown("### 🧬 CONTROL PANEL")
     
-    # === FITUR TAMBAH CHAT (CHAT BARU) ===
     if st.button("➕ CHAT BARU", type="primary"):
         st.session_state.messages = []
         st.rerun()
     
     st.divider()
     
-    # Navigasi Modern (Option Menu)
+    # PERBAIKAN MENU: Background Container diset ke HITAM (#000000)
     selected = option_menu(
         menu_title=None,
         options=["Beranda", "Papan Tulis", "Statistik", "Grafik", "Ujian PDF"],
         icons=["house", "pencil", "bar-chart", "activity", "file-pdf"],
         default_index=0,
         styles={
-            "container": {"padding": "0!important", "background-color": "transparent"},
+            "container": {"padding": "0!important", "background-color": "#000000"}, # INI KUNCINYA
             "icon": {"color": "#00E5FF", "font-size": "18px"}, 
-            "nav-link": {"font-size": "16px", "text-align": "left", "margin": "5px", "color": "#fff"},
+            "nav-link": {"font-size": "16px", "text-align": "left", "margin": "5px", "color": "#fff", "background-color": "#000000"},
             "nav-link-selected": {"background-color": "#00E5FF", "color": "black", "font-weight": "bold"},
         }
     )
     
     if lottie_robot:
-        st_lottie(lottie_robot, height=150, key="sidebar_anim")
+        st_lottie(lottie_robot, height=150, key="anim_sidebar")
 
 # --- 6. LOGIKA FITUR ---
 
-# A. PAPAN TULIS (FULL AREA PERSEGI)
+# A. PAPAN TULIS (FULL & MENYATU)
 if selected == "Papan Tulis":
     st.markdown("<h2 style='color:#00E5FF'>✏️ CANVAS DIGITAL</h2>", unsafe_allow_html=True)
+    st.caption("Coret rumus matematika di area hitam di bawah ini.")
     
-    # Canvas dibuat lebar (width 1000an) dan background hitam pekat
+    # Canvas Lebar & Hitam
     canvas_result = st_canvas(
         fill_color="rgba(0, 229, 255, 0.3)",
         stroke_width=3,
-        stroke_color="#00E5FF", # Tinta Neon
-        background_color="#000000", # Kertas Hitam
-        height=500, # Tinggi Full
-        width=1000, # Lebar Full
+        stroke_color="#00E5FF",
+        background_color="#000000", # Pastikan Hitam
+        height=500,
+        width=1200, # Lebar maksimal agar pas di laptop
         drawing_mode="freedraw",
         key="canvas",
     )
     
-    # Tombol kirim full width
-    if st.button("KIRIM CORETAN KE AI"):
+    if st.button("KIRIM CORETAN"):
         if canvas_result.image_data is not None:
             img = Image.fromarray(canvas_result.image_data.astype("uint8"))
-            st.session_state.messages.append({"role": "user", "content": "[Mengirim Gambar Canvas]"})
-            with st.spinner("MEMINDAI DATA VISUAL..."):
-                resp = model.generate_content(["Selesaikan soal matematika ini langkah demi langkah:", img])
+            st.session_state.messages.append({"role": "user", "content": "[Mengirim Canvas]"})
+            with st.spinner("MEMBACA CORETAN..."):
+                resp = model.generate_content(["Jelaskan matematika ini:", img])
                 st.session_state.messages.append({"role": "assistant", "content": resp.text})
                 st.rerun()
 
 # B. STATISTIK
 elif selected == "Statistik":
-    st.markdown("<h2 style='color:#00E5FF'>📊 DATA ANALYST</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='color:#00E5FF'>📊 DATA ENGINE</h2>", unsafe_allow_html=True)
     file = st.file_uploader("Upload CSV", type=["csv"])
     if file:
         df = pd.read_csv(file)
         st.dataframe(df.head(), use_container_width=True)
-        if st.button("ANALISIS DATA"):
-            with st.spinner("MENGHITUNG DATA..."):
-                resp = model.generate_content(f"Analisis data ini:\n{df.describe().to_string()}")
+        if st.button("ANALISIS"):
+            with st.spinner("PROCESSING..."):
+                resp = model.generate_content(f"Analisis data:\n{df.describe().to_string()}")
                 st.session_state.messages.append({"role": "assistant", "content": resp.text})
                 st.rerun()
 
 # C. GRAFIK
 elif selected == "Grafik":
-    st.markdown("<h2 style='color:#00E5FF'>📈 PLOT GRAFIK</h2>", unsafe_allow_html=True)
-    col1, col2 = st.columns([4, 1])
-    with col1: rumus = st.text_input("Fungsi f(x):", "np.sin(x) * x")
+    st.markdown("<h2 style='color:#00E5FF'>📈 PLOT SYSTEM</h2>", unsafe_allow_html=True)
+    col1, col2 = st.columns([3, 1])
+    with col1: rumus = st.text_input("f(x):", "np.sin(x)*x")
     with col2: 
         st.write("")
         st.write("")
-        btn_plot = st.button("PLOT")
+        btn = st.button("PLOT")
         
-    if btn_plot:
+    if btn:
         try:
             x = np.linspace(-10, 10, 100)
             y = eval(rumus)
             fig, ax = plt.subplots(figsize=(10, 5))
-            
-            # Style Grafik Cyberpunk
             fig.patch.set_facecolor('#000')
             ax.set_facecolor('#000')
-            ax.spines['bottom'].set_color('#00E5FF')
-            ax.spines['left'].set_color('#00E5FF')
-            ax.spines['top'].set_visible(False)
-            ax.spines['right'].set_visible(False)
+            ax.spines['bottom'].set_color('#00E5FF'); ax.spines['left'].set_color('#00E5FF')
+            ax.spines['top'].set_visible(False); ax.spines['right'].set_visible(False)
             ax.tick_params(colors='#fff')
-            
-            ax.plot(x, y, color='#00E5FF', linewidth=3, shadow=True)
-            ax.grid(True, color='#333', linestyle='--', alpha=0.5)
-            
+            ax.plot(x, y, color='#00E5FF', linewidth=3)
+            ax.grid(True, color='#333', linestyle='--')
             st.pyplot(fig)
-        except: st.error("SINTAKS ERROR")
+        except: st.error("ERROR")
 
-# D. UJIAN PDF
+# D. PDF
 elif selected == "Ujian PDF":
-    st.markdown("<h2 style='color:#00E5FF'>📝 GENERATOR UJIAN</h2>", unsafe_allow_html=True)
-    topik = st.text_input("Topik Matematika:", "Integral")
-    if st.button("GENERATE PDF"):
+    st.markdown("<h2 style='color:#00E5FF'>📝 EXAM GENERATOR</h2>", unsafe_allow_html=True)
+    topik = st.text_input("Topik:", "Turunan")
+    if st.button("GENERATE"):
         def create_pdf(text):
             pdf = FPDF(); pdf.add_page(); pdf.set_font("Arial", size=12)
             pdf.multi_cell(0, 7, text.encode('latin-1', 'replace').decode('latin-1'))
             return pdf.output(dest='S').encode('latin-1')
-        
-        with st.spinner("MEMBUAT SOAL..."):
-            resp = model.generate_content(f"Buat 5 soal {topik}.")
-            st.download_button("DOWNLOAD FILE", create_pdf(resp.text), "soal.pdf")
+        with st.spinner("CREATING..."):
+            resp = model.generate_content(f"Buat 3 soal {topik}.")
+            st.download_button("DOWNLOAD", create_pdf(resp.text), "soal.pdf")
 
-# --- 7. BERANDA (DASHBOARD KOTAK) ---
+# --- 7. DASHBOARD ---
 if selected == "Beranda":
-    st.markdown('<h1 class="glitch-title">AI MATH ULTIMATE</h1>', unsafe_allow_html=True)
-    st.write("SISTEM MATEMATIKA CERDAS BERBASIS VISION & GENERATIVE AI.")
+    st.markdown('<h1 style="color:#fff; font-size:3em;">AI MATH ULTIMATE</h1>', unsafe_allow_html=True)
+    st.write("SYSTEM READY. WAITING FOR INPUT.")
     
     if not st.session_state.messages:
         st.divider()
-        # Kartu Dashboard Full Width & Persegi
         c1, c2, c3 = st.columns(3)
-        
-        with c1:
-            st.markdown("""
-            <div class="cyber-card">
-                <h1 style='font-size:50px'>📸</h1>
-                <h3>VISION SCAN</h3>
-                <p>Upload foto soal, AI akan membedah solusinya.</p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        with c2:
-            st.markdown("""
-            <div class="cyber-card">
-                <h1 style='font-size:50px'>📈</h1>
-                <h3>AUTO GRAPH</h3>
-                <p>Visualisasi rumus matematika instan.</p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        with c3:
-            st.markdown("""
-            <div class="cyber-card">
-                <h1 style='font-size:50px'>💾</h1>
-                <h3>DATA ENGINE</h3>
-                <p>Analisis file CSV & Statistik otomatis.</p>
-            </div>
-            """, unsafe_allow_html=True)
+        with c1: st.markdown('<div class="cyber-card"><h1>📸</h1><h3>VISION</h3></div>', unsafe_allow_html=True)
+        with c2: st.markdown('<div class="cyber-card"><h1>📈</h1><h3>GRAPH</h3></div>', unsafe_allow_html=True)
+        with c3: st.markdown('<div class="cyber-card"><h1>💾</h1><h3>DATA</h3></div>', unsafe_allow_html=True)
 
-# --- 8. CHAT INTERFACE ---
+# --- 8. CHAT ---
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# --- 9. INPUT AREA ---
-if prompt := st.chat_input("MASUKKAN PERINTAH MATEMATIKA..."):
+# --- 9. INPUT BAWAH (FIXED BLACK) ---
+if prompt := st.chat_input("COMMAND INPUT..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.rerun()
 
 if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
     user_msg = st.session_state.messages[-1]["content"]
     with st.chat_message("user"): st.markdown(user_msg)
-    
     with st.chat_message("assistant"):
         placeholder = st.empty()
-        with st.spinner("PROCESSING..."):
+        with st.spinner("CALCULATING..."):
             try:
-                sys = "Jawab dengan LaTeX. Gaya bahasa: Singkat, Padat, Futuristik."
-                response = model.generate_content(sys + user_msg)
-                
-                full_text = ""
-                for chunk in response.text.split():
-                    full_text += chunk + " "
-                    placeholder.markdown(full_text + "▌")
-                    time.sleep(0.05)
-                placeholder.markdown(full_text)
-                st.session_state.messages.append({"role": "assistant", "content": full_text})
-            except: st.error("CONNECTION ERROR")
+                resp = model.generate_content("Jawab LaTeX & Singkat: " + user_msg)
+                placeholder.markdown(resp.text)
+                st.session_state.messages.append({"role": "assistant", "content": resp.text})
+            except: st.error("ERROR")
