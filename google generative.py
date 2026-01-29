@@ -29,7 +29,15 @@ def load_lottieurl(url):
 
 lottie_robot = load_lottieurl("https://lottie.host/5a8059f1-3226-444a-93f4-0b7305986877/P1sF2Xn3vR.json")
 
-# --- 3. CSS CYBERPUNK (SUPPORTS CLICKABLE CARDS) ---
+# --- 3. FIX ERROR SESSION STATE (PENTING!) ---
+# Ini mencegah error saat tombol diklik. Kita set default menu ke 'Beranda'
+if "main_nav" not in st.session_state:
+    st.session_state["main_nav"] = "Beranda"
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# --- 4. CSS CYBERPUNK ---
 st.markdown("""
 <style>
     /* RESET GLOBAL */
@@ -81,11 +89,16 @@ st.markdown("""
         box-shadow: 0 0 15px #00E5FF;
     }
 
-    /* --- TOMBOL DASHBOARD KHUSUS (BESAR) --- */
-    /* Kita akan mentarget tombol yang memiliki emoji khusus ini di dalamnya nanti */
-    /* Sayangnya CSS tidak bisa baca text, jadi kita buat semua tombol di main area agak tinggi */
-    div[data-testid="stVerticalBlock"] > div > div > div > div > .stButton > button {
-        min-height: 60px; /* Tinggi standar */
+    /* --- TOMBOL DASHBOARD BESAR --- */
+    div[data-testid="column"] button {
+        min-height: 150px; /* Tinggi Tombol */
+        width: 100%;
+        font-size: 20px;
+        border: 2px solid #333;
+    }
+    div[data-testid="column"] button:hover {
+        border-color: #00E5FF;
+        transform: scale(1.02);
     }
 
 </style>
@@ -94,7 +107,7 @@ st.markdown("""
 # Set Grafik Gelap
 plt.style.use('dark_background')
 
-# --- 4. API CONFIG ---
+# --- 5. API CONFIG ---
 try:
     if "GEMINI_API_KEY" in st.secrets:
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
@@ -104,9 +117,8 @@ try:
 except: st.stop()
 
 model = genai.GenerativeModel('moduls/gemini-2.5-flash')
-if "messages" not in st.session_state: st.session_state.messages = []
 
-# --- 5. SIDEBAR NAVIGASI ---
+# --- 6. SIDEBAR NAVIGASI ---
 with st.sidebar:
     st.markdown("### 🧬 CONTROL PANEL")
     
@@ -116,13 +128,13 @@ with st.sidebar:
     
     st.divider()
     
-    # ⚠️ PENTING: Tambahkan key='main_nav' agar bisa dikontrol dari tombol luar
+    # Menu Navigasi (Terhubung dengan Session State)
     selected = option_menu(
         menu_title=None,
         options=["Beranda", "Papan Tulis", "Statistik", "Grafik", "Ujian PDF"],
         icons=["house", "pencil", "bar-chart", "activity", "file-pdf"],
         default_index=0,
-        key="main_nav", # Kunci agar tombol dashboard bisa mengubah menu ini
+        key="main_nav", # Kunci ini sekarang aman karena sudah di-init di atas
         styles={
             "container": {"padding": "0!important", "background-color": "#000000"},
             "icon": {"color": "#00E5FF", "font-size": "18px"}, 
@@ -134,12 +146,11 @@ with st.sidebar:
     if lottie_robot:
         st_lottie(lottie_robot, height=150, key="anim_sidebar")
 
-# --- 6. LOGIKA FITUR ---
+# --- 7. LOGIKA FITUR ---
 
 # A. PAPAN TULIS
 if selected == "Papan Tulis":
     st.markdown("<h2 style='color:#00E5FF'>✏️ CANVAS DIGITAL</h2>", unsafe_allow_html=True)
-    st.caption("Gunakan area ini untuk menulis soal atau upload gambar.")
     
     canvas_result = st_canvas(
         fill_color="rgba(0, 229, 255, 0.3)",
@@ -212,54 +223,35 @@ elif selected == "Ujian PDF":
             resp = model.generate_content(f"Buat 3 soal {topik}.")
             st.download_button("DOWNLOAD", create_pdf(resp.text), "soal.pdf")
 
-# --- 7. DASHBOARD (DENGAN TOMBOL KLIK) ---
+# --- 8. DASHBOARD UTAMA ---
 if selected == "Beranda":
     st.markdown('<h1 style="color:#fff; font-size:3em; margin-bottom: 20px;">AI MATH ULTIMATE</h1>', unsafe_allow_html=True)
     st.write("SISTEM MATEMATIKA CERDAS. SILAKAN PILIH MODUL.")
-    
     st.divider()
 
-    # KITA GANTI HTML 'DIV' DENGAN TOMBOL ASLI STREAMLIT AGAR BISA DIKLIK
-    # Kita gunakan CSS Custom agar tombol ini terlihat besar seperti kartu
-    
-    # CSS Khusus untuk membesarkan tombol dashboard
-    st.markdown("""
-    <style>
-    div[data-testid="column"] button {
-        height: 150px; /* Tinggi Tombol */
-        width: 100%;
-        font-size: 24px;
-        white-space: pre-wrap; /* Agar teks bisa enter */
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
+    # Tombol Dashboard Besar
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        # Tombol Vision
         if st.button("📸\nVISION SCAN\n(Canvas & Foto)", use_container_width=True):
-            st.session_state["main_nav"] = "Papan Tulis" # Pindah ke Papan Tulis
+            st.session_state["main_nav"] = "Papan Tulis" 
             st.rerun()
             
     with col2:
-        # Tombol Grafik
         if st.button("📈\nAUTO GRAPH\n(Plot Rumus)", use_container_width=True):
-            st.session_state["main_nav"] = "Grafik" # Pindah ke Grafik
+            st.session_state["main_nav"] = "Grafik"
             st.rerun()
             
     with col3:
-        # Tombol Data
         if st.button("💾\nDATA ENGINE\n(Analisis CSV)", use_container_width=True):
-            st.session_state["main_nav"] = "Statistik" # Pindah ke Statistik
+            st.session_state["main_nav"] = "Statistik"
             st.rerun()
 
-# --- 8. CHAT INTERFACE ---
+# --- 9. CHAT & INPUT ---
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# --- 9. INPUT BAWAH ---
 if prompt := st.chat_input("COMMAND INPUT..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.rerun()
