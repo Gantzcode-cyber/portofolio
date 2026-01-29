@@ -285,3 +285,37 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
                 st.session_state.messages.append({"role": "assistant", "content": resp.text})
             except Exception as e:
                 st.error("Gagal terhubung. Coba lagi nanti.")
+# 1. Cek Apakah Key Terbaca
+try:
+    api_key = st.secrets["GEMINI_API_KEY"]
+    st.success(f"✅ API Key ditemukan di Secrets! (Depan: {api_key[:5]}...)")
+    genai.configure(api_key=api_key)
+except Exception as e:
+    st.error("❌ API Key TIDAK DITEMUKAN di Secrets!")
+    st.error(f"Pesan Error: {e}")
+    st.stop()
+
+# 2. Cek Koneksi ke Google
+if st.button("TES KONEKSI KE GOOGLE"):
+    with st.spinner("Mencoba menghubungi server Google..."):
+        try:
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            response = model.generate_content("Tes. Jawab 'Halo' jika terhubung.")
+            
+            st.success("✅ BERHASIL TERHUBUNG!")
+            st.info(f"Jawaban Google: {response.text}")
+            st.balloons()
+            
+        except Exception as e:
+            st.error("❌ GAGAL TERHUBUNG!")
+            st.markdown(f"**Detail Error:**")
+            st.code(e)
+            
+            # Analisis Error
+            err_str = str(e)
+            if "403" in err_str:
+                st.warning("👉 Masalah: API Key Salah atau API belum diaktifkan di Google AI Studio.")
+            elif "429" in err_str:
+                st.warning("👉 Masalah: KUOTA HABIS (Rate Limit). Tunggu sebentar atau ganti akun.")
+            elif "not found" in err_str:
+                st.warning("👉 Masalah: Model tidak ditemukan. Coba ganti model ke 'gemini-pro'.")
