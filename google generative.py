@@ -103,7 +103,7 @@ if image_prompt:
             bot_reply = response.text
             
             with st.chat_message("assistant"):
-                st.markdown(bot_reply)gemini-2.5-flash
+                st.markdown(bot_reply)
             
             st.session_state.messages.append({"role": "assistant", "content": bot_reply})
         except Exception as e:
