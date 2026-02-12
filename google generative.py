@@ -11,7 +11,6 @@ from streamlit_lottie import st_lottie
 from streamlit_option_menu import option_menu
 import time
 
-# --- 1. KONFIGURASI HALAMAN ---
 st.set_page_config(
     page_title="AI Math Ultimate",
     page_icon="🌌",
@@ -19,7 +18,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- 2. ASET & ANIMASI ---
 def load_lottieurl(url):
     try:
         r = requests.get(url)
@@ -29,14 +27,12 @@ def load_lottieurl(url):
 
 lottie_robot = load_lottieurl("https://lottie.host/5a8059f1-3226-444a-93f4-0b7305986877/P1sF2Xn3vR.json")
 
-# --- 3. FIX ERROR SESSION STATE ---
 if "main_nav" not in st.session_state:
     st.session_state["main_nav"] = "Beranda"
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# --- 4. CSS CYBERPUNK ---
 st.markdown("""
 <style>
     /* RESET GLOBAL */
@@ -104,7 +100,6 @@ st.markdown("""
 
 plt.style.use('dark_background')
 
-# --- 5. API CONFIG (DENGAN PENGAMAN) ---
 try:
     if "GEMINI_API_KEY" in st.secrets:
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
@@ -117,7 +112,6 @@ except Exception as e:
 
 model = genai.GenerativeModel('models/gemini-2.5-flash')
 
-# --- 6. SIDEBAR NAVIGASI ---
 with st.sidebar:
     st.markdown("### 🧬 CONTROL PANEL")
     
@@ -144,9 +138,7 @@ with st.sidebar:
     if lottie_robot:
         st_lottie(lottie_robot, height=150, key="anim_sidebar")
 
-# --- 7. LOGIKA FITUR (SEMUA PAKAI TRY-EXCEPT) ---
 
-# A. PAPAN TULIS
 if selected == "Papan Tulis":
     st.markdown("<h2 style='color:#00E5FF'>✏️ CANVAS DIGITAL</h2>", unsafe_allow_html=True)
     
@@ -173,7 +165,7 @@ if selected == "Papan Tulis":
                 except Exception as e:
                     st.error(f"Gagal terhubung ke AI: {e}")
 
-# B. STATISTIK
+# 
 elif selected == "Statistik":
     st.markdown("<h2 style='color:#00E5FF'>📊 DATA ENGINE</h2>", unsafe_allow_html=True)
     file = st.file_uploader("Upload CSV", type=["csv"])
@@ -189,7 +181,6 @@ elif selected == "Statistik":
                 except Exception as e:
                     st.error(f"Gagal analisis: {e}")
 
-# C. GRAFIK
 elif selected == "Grafik":
     st.markdown("<h2 style='color:#00E5FF'>📈 PLOT SYSTEM</h2>", unsafe_allow_html=True)
     col1, col2 = st.columns([3, 1])
@@ -214,7 +205,6 @@ elif selected == "Grafik":
             st.pyplot(fig)
         except Exception as e: st.error(f"Rumus Error: {e}")
 
-# D. UJIAN PDF (BAGIAN YANG TADI ERROR)
 elif selected == "Ujian PDF":
     st.markdown("<h2 style='color:#00E5FF'>📝 EXAM GENERATOR</h2>", unsafe_allow_html=True)
     topik = st.text_input("Topik:", "Turunan")
@@ -226,11 +216,10 @@ elif selected == "Ujian PDF":
             return pdf.output(dest='S').encode('latin-1')
             
         with st.spinner("CREATING..."):
-            try: # --- PENGAMAN DI SINI ---
-                # Memanggil API dengan aman
+            try: # PENGAMAN lagi
+                # Memanggil API api api
                 resp = model.generate_content(f"Buat 3 soal matematika pilihan ganda tentang {topik} beserta kunci jawaban.")
                 
-                # Jika berhasil, buat tombol download
                 st.download_button(
                     label="DOWNLOAD PDF", 
                     data=create_pdf(resp.text), 
@@ -240,11 +229,9 @@ elif selected == "Ujian PDF":
                 st.success("PDF Berhasil Dibuat! Silakan Download.")
                 
             except Exception as e:
-                # Jika Error, Tampilkan Pesan Santai, JANGAN CRASH
                 st.warning("⚠️ Koneksi AI sedang sibuk. Mohon tunggu 10 detik dan coba lagi.")
                 st.error(f"Detail Error: {e}")
 
-# --- 8. DASHBOARD UTAMA ---
 if selected == "Beranda":
     st.markdown('<h1 style="color:#fff; font-size:3em; margin-bottom: 20px;">AI MATH ULTIMATE</h1>', unsafe_allow_html=True)
     st.write("SISTEM MATEMATIKA CERDAS. SILAKAN PILIH MODUL.")
@@ -263,32 +250,21 @@ if selected == "Beranda":
         if st.button("💾\nDATA ENGINE\n(Analisis CSV)", use_container_width=True):
             st.session_state["main_nav"] = "Statistik"
             st.rerun()
-
-# --- 9. INPUT BAWAH (YANG SUDAH DIPERBAIKI) ---
-
-# Tampilkan dulu Input Chat
+            
 if prompt := st.chat_input("COMMAND INPUT..."):
-    # 1. Simpan pesan user
     st.session_state.messages.append({"role": "user", "content": prompt})
     
-    # 2. Tampilkan pesan user langsung di layar saat ini
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # 3. JANGAN PAKAI st.rerun() DI SINI! (Ini penyebab double chat)
-    
-    # 4. Langsung panggil AI untuk menjawab di run yang sama
     with st.chat_message("assistant"):
         placeholder = st.empty()
         with st.spinner("CALCULATING..."):
             try:
-                # Panggil AI
                 resp = model.generate_content("Jawab LaTeX & Singkat: " + prompt)
                 
-                # Tampilkan Jawaban
                 placeholder.markdown(resp.text)
                 
-                # Simpan Jawaban ke Ingatan
                 st.session_state.messages.append({"role": "assistant", "content": resp.text})
             except Exception as e:
                 st.error(f"ERROR: {e}")
